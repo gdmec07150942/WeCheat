@@ -11,4 +11,4 @@
 |
 */
 
-Route::any('/', 'WeChatController@api');
+Route::any('/', 'WeChatController@server');
