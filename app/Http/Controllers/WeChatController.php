@@ -5,11 +5,11 @@ namespace App\Http\Controllers;
 use DB;
 use App\Http\Requests;
 use Illuminate\Http\Request;
-use EasyWeChat\Foundation\Application;
+//use EasyWeChat\Foundation\Application;
 
 class WeChatController extends Controller
 {
-    protected $server;
+    // protected $server;
 
     public function api()
     {
@@ -24,13 +24,12 @@ class WeChatController extends Controller
 
     }
 
-    public function __construct(Application $wechat)
-    {
-        $this->wechat = $wechat;
-    }
-
-    public function server()
-    {
+//    public function __construct(Application $wechat)
+//    {
+//        $this->wechat = $wechat;
+//    }
+//    public function server()
+//    {
 //        $server = $this->wechat->server;
 //        $user = $this->wechat->user;
 //        $server->setMessageHandler(function ($message) use ($user) {
@@ -65,13 +64,13 @@ class WeChatController extends Controller
 //        });
 //        $resopne = $server->serve();
 //        $resopne->send();
-        $app = app('wechat.official_account');
-        $app->server->push(function($message){
-            return "欢迎关注 overtrue！";
-        });
-
-        return $app->server->serve();
-    }
+//        $app = app('wechat.official_account');
+//        $app->server->push(function ($message) {
+//            return "欢迎关注 overtrue！";
+//        });
+//
+//        return $app->server->serve();
+//    }
 
 
 }
