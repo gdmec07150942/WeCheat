@@ -6,7 +6,7 @@ return [
      *
      * 当值为 false 时，所有的日志都不会记录
      */
-    'debug' => true,
+    'debug'  => true,
 
     /*
      * 使用 Laravel 的缓存系统
@@ -16,10 +16,10 @@ return [
     /*
      * 账号基本信息，请从微信公众平台/开放平台获取
      */
-    'app_id' => env('WECHAT_APPID', 'wx979c0fc4e15108d8'),         // AppID
-    'secret' => env('WECHAT_SECRET', 'de1ec3c8f4d7a5476aa73b2b1cd7cbb3'),     // AppSecret
-    'token' => env('WECHAT_TOKEN', 'weixin'),          // Token
-    'aes_key' => env('WECHAT_AES_KEY', 'ld8dMm8NPqT3CQKzdE9Bk1pDvUR4tUJuvtjCknTSkEX'),                    // EncodingAESKey
+    'app_id'  => env('WECHAT_APPID', 'wx51835a7de6d207a5'),         // AppID
+    'secret'  => env('WECHAT_SECRET', 'c878505a150450435e81afc81f8428ca'),     // AppSecret
+    'token'   => env('WECHAT_TOKEN', 'weixin'),          // Token
+    'aes_key' => env('WECHAT_AES_KEY', ''),                    // EncodingAESKey
 
     /**
      * 开放平台第三方平台配置信息
@@ -63,7 +63,7 @@ return [
      */
     'log' => [
         'level' => env('WECHAT_LOG_LEVEL', 'debug'),
-        'file' => env('WECHAT_LOG_FILE', storage_path('logs/wechat.log')),
+        'file'  => env('WECHAT_LOG_FILE', storage_path('logs/wechat.log')),
     ],
 
     /*
@@ -73,11 +73,10 @@ return [
      * scopes：公众平台（snsapi_userinfo / snsapi_base），开放平台：snsapi_login
      * callback：OAuth授权完成后的回调页地址(如果使用中间件，则随便填写。。。)
      */
-    // 'oauth' => [
-    //     'only_wechat_browser' => false,
-    //     'scopes'   => array_map('trim', explode(',', env('WECHAT_OAUTH_SCOPES', 'snsapi_userinfo'))),
-    //     'callback' => env('WECHAT_OAUTH_CALLBACK', '/examples/oauth_callback.php'),
-    // ],
+     'oauth' => [
+         'scopes'   => array_map('trim', explode(',', env('WECHAT_OAUTH_SCOPES', 'snsapi_userinfo'))),
+         'callback' => 'http://www.yiokit.com/laravel-wechat-test/public/api/oauth_callback',
+     ],
 
     /*
      * 微信支付
