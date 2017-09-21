@@ -14,19 +14,20 @@ class WeChatController extends Controller
 {
     public function serve()
     {
-        header('Content-type:text');
-        define("TOKEN", "weixin");
-        if (isset($_GET['echostr'])) {
-            $this->valid();
-        }else{
-            $this->responseMsg();
+        $token = "weixin";
+        $sort = array($token, $_GET['timestamp'], $_GET['nonce']);
+        sort($sort, SORT_STRING);
+        if (sha1(implode($sort)) != $_GET['signature']) {
+            return false;
         }
+        echo $_GET['echostr'];
+        exit;
     }
 
     public function valid()
     {
         $echoStr = $_GET["echostr"];
-        if($this->checkSignature()){
+        if ($this->checkSignature()) {
             header('content-type:text');
             echo $echoStr;
             exit;
@@ -42,12 +43,12 @@ class WeChatController extends Controller
         $token = TOKEN;
         $tmpArr = array($token, $timestamp, $nonce);
         sort($tmpArr, SORT_STRING);
-        $tmpStr = implode( $tmpArr );
-        $tmpStr = sha1( $tmpStr );
+        $tmpStr = implode($tmpArr);
+        $tmpStr = sha1($tmpStr);
 
-        if( $tmpStr == $signature ){
+        if ($tmpStr == $signature) {
             return true;
-        }else{
+        } else {
             return false;
         }
     }
@@ -57,7 +58,7 @@ class WeChatController extends Controller
 //        $postStr = $GLOBALS["HTTP_RAW_POST_DATA"];
 
         $postStr = file_get_contents('php://input');
-        if (!empty($postStr)){
+        if (!empty($postStr)) {
             $postObj = simplexml_load_string($postStr, 'SimpleXMLElement', LIBXML_NOCDATA);
             $fromUsername = $postObj->FromUserName;
             $toUsername = $postObj->ToUserName;
@@ -71,18 +72,18 @@ class WeChatController extends Controller
                         <Content><![CDATA[%s]]></Content>
                         <FuncFlag>0</FuncFlag>
                         </xml>";
-            if($keyword == 'hello')
-            {
+            if ($keyword == 'hello') {
                 $msgType = "text";
-                $contentStr = date("Y-m-d H:i:s",time());
+                $contentStr = date("Y-m-d H:i:s", time());
                 $resultStr = sprintf($textTpl, $fromUsername, $toUsername, $time, $msgType, $contentStr);
                 echo $resultStr;
             }
-        }else{
+        } else {
             echo "";
             exit;
         }
     }
+
     private $serve;
     private $user;
     private $auth;
