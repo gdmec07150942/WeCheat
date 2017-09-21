@@ -3,7 +3,7 @@
 /*
  * This file is part of Psy Shell.
  *
- * (c) 2012-2017 Justin Hileman
+ * (c) 2012-2015 Justin Hileman
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -40,27 +40,11 @@ class Configuration
     const COLOR_MODE_DISABLED = 'disabled';
 
     private static $AVAILABLE_OPTIONS = array(
-        'codeCleaner',
-        'colorMode',
-        'configDir',
-        'dataDir',
-        'defaultIncludes',
-        'eraseDuplicates',
-        'errorLoggingLevel',
-        'historySize',
-        'loop',
-        'manualDbFile',
-        'pager',
-        'requireSemicolons',
-        'runtimeDir',
-        'startupMessage',
-        'tabCompletion',
-        'updateCheck',
-        'useBracketedPaste',
-        'usePcntl',
-        'useReadline',
-        'useUnicode',
-        'warnOnMultipleConfigs',
+        'defaultIncludes', 'useReadline', 'usePcntl', 'codeCleaner', 'pager',
+        'loop', 'configDir', 'dataDir', 'runtimeDir', 'manualDbFile',
+        'requireSemicolons', 'useUnicode', 'historySize', 'eraseDuplicates',
+        'tabCompletion', 'errorLoggingLevel', 'warnOnMultipleConfigs',
+        'colorMode', 'updateCheck',
     );
 
     private $defaultIncludes;
@@ -68,14 +52,12 @@ class Configuration
     private $dataDir;
     private $runtimeDir;
     private $configFile;
-    /** @var string|false */
     private $historyFile;
     private $historySize;
     private $eraseDuplicates;
     private $manualDbFile;
     private $hasReadline;
     private $useReadline;
-    private $useBracketedPaste;
     private $hasPcntl;
     private $usePcntl;
     private $newCommands = array();
@@ -87,7 +69,6 @@ class Configuration
     private $warnOnMultipleConfigs = false;
     private $colorMode;
     private $updateCheck;
-    private $startupMessage;
 
     // services
     private $readline;
@@ -200,7 +181,7 @@ class Configuration
      */
     public function getLocalConfigFile()
     {
-        $localConfig = getcwd() . '/.psysh.php';
+        $localConfig = getenv('PWD') . '/.psysh.php';
 
         if (@is_file($localConfig)) {
             return $localConfig;
@@ -358,7 +339,7 @@ class Configuration
      */
     public function setHistoryFile($file)
     {
-        $this->historyFile = ConfigPaths::touchFileWithMkdir($file);
+        $this->historyFile = (string) $file;
     }
 
     /**
@@ -376,7 +357,7 @@ class Configuration
         }
 
         // Deprecation warning for incorrect psysh_history path.
-        // @todo remove this before v0.9.0
+        // TODO: remove this before v0.8.0
         $xdg = new Xdg();
         $oldHistory = $xdg->getHomeConfigDir() . '/psysh_history';
         if (@is_file($oldHistory)) {
@@ -389,9 +370,8 @@ class Configuration
                 $newHistory
             );
             @trigger_error($msg, E_USER_DEPRECATED);
-            $this->setHistoryFile($oldHistory);
 
-            return $this->historyFile;
+            return $this->historyFile = $oldHistory;
         }
 
         $files = ConfigPaths::getConfigFiles(array('psysh_history', 'history'), $this->configDir);
@@ -402,14 +382,16 @@ class Configuration
                 trigger_error($msg, E_USER_NOTICE);
             }
 
-            $this->setHistoryFile($files[0]);
-        } else {
-            // fallback: create our own history file
-            $dir = $this->configDir ?: ConfigPaths::getCurrentConfigDir();
-            $this->setHistoryFile($dir . '/psysh_history');
+            return $this->historyFile = $files[0];
         }
 
-        return $this->historyFile;
+        // fallback: create our own history file
+        $dir = $this->configDir ?: ConfigPaths::getCurrentConfigDir();
+        if (!is_dir($dir)) {
+            mkdir($dir, 0700, true);
+        }
+
+        return $this->historyFile = $dir . '/psysh_history';
     }
 
     /**
@@ -475,7 +457,7 @@ class Configuration
      * The pipe will be created inside the current temporary directory.
      *
      * @param string $type
-     * @param int    $pid
+     * @param id     $pid
      *
      * @return string Pipe name
      */
@@ -575,44 +557,6 @@ class Configuration
     }
 
     /**
-     * Enable or disable bracketed paste.
-     *
-     * Note that this only works with readline (not libedit) integration for now.
-     *
-     * @param bool $useBracketedPaste
-     */
-    public function setUseBracketedPaste($useBracketedPaste)
-    {
-        $this->useBracketedPaste = (bool) $useBracketedPaste;
-    }
-
-    /**
-     * Check whether to use bracketed paste with readline.
-     *
-     * When this works, it's magical. Tabs in pastes don't try to autcomplete.
-     * Newlines in paste don't execute code until you get to the end. It makes
-     * readline act like you'd expect when pasting.
-     *
-     * But it often (usually?) does not work. And when it doesn't, it just spews
-     * escape codes all over the place and generally makes things ugly :(
-     *
-     * If `useBracketedPaste` has been set to true, but the current readline
-     * implementation is anything besides GNU readline, this will return false.
-     *
-     * @return bool True if the shell should use bracketed paste
-     */
-    public function useBracketedPaste()
-    {
-        // For now, only the GNU readline implementation supports bracketed paste.
-        $supported = ($this->getReadlineClass() === 'Psy\Readline\GNUReadline');
-
-        return $supported && $this->useBracketedPaste;
-
-        // @todo mebbe turn this on by default some day?
-        // return isset($this->useBracketedPaste) ? ($supported && $this->useBracketedPaste) : $supported;
-    }
-
-    /**
      * Check whether this PHP instance has Pcntl available.
      *
      * @return bool True if Pcntl is available
@@ -698,7 +642,7 @@ class Configuration
             return $this->useUnicode;
         }
 
-        // @todo detect `chsh` != 65001 on Windows and return false
+        // TODO: detect `chsh` != 65001 on Windows and return false
         return true;
     }
 
@@ -1032,7 +976,7 @@ class Configuration
     /**
      * Get a PHP manual database connection.
      *
-     * @return \PDO
+     * @return PDO
      */
     public function getManualDb()
     {
@@ -1166,12 +1110,7 @@ class Configuration
                 case Checker::DAILY:
                 case Checker::WEEKLY:
                 case Checker::MONTHLY:
-                    $checkFile = $this->getUpdateCheckCacheFile();
-                    if ($checkFile === false) {
-                        $this->checker = new NoopChecker();
-                    } else {
-                        $this->checker = new IntervalChecker($checkFile, $interval);
-                    }
+                    $this->checker = new IntervalChecker($this->getUpdateCheckCacheFile(), $interval);
                     break;
 
                 case Checker::NEVER:
@@ -1223,32 +1162,15 @@ class Configuration
     /**
      * Get a cache file path for the update checker.
      *
-     * @return string|false Return false if config file/directory is not writable
+     * @return string
      */
     public function getUpdateCheckCacheFile()
     {
         $dir = $this->configDir ?: ConfigPaths::getCurrentConfigDir();
+        if (!is_dir($dir)) {
+            mkdir($dir, 0700, true);
+        }
 
-        return ConfigPaths::touchFileWithMkdir($dir . '/update_check.json');
-    }
-
-    /**
-     * Set the startup message.
-     *
-     * @param string $message
-     */
-    public function setStartupMessage($message)
-    {
-        $this->startupMessage = $message;
-    }
-
-    /**
-     * Get the startup message.
-     *
-     * @return string|null
-     */
-    public function getStartupMessage()
-    {
-        return $this->startupMessage;
+        return $dir . '/update_check.json';
     }
 }

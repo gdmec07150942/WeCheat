@@ -5,7 +5,7 @@ namespace Dotenv;
 /**
  * This is the dotenv class.
  *
- * It's responsible for loading a `.env.example` file in the given directory and
+ * It's responsible for loading a `.env` file in the given directory and
  * setting the environment vars.
  */
 class Dotenv
@@ -32,7 +32,7 @@ class Dotenv
      *
      * @return void
      */
-    public function __construct($path, $file = '.env.example')
+    public function __construct($path, $file = '.env')
     {
         $this->filePath = $this->getFilePath($path, $file);
         $this->loader = new Loader($this->filePath, true);
@@ -69,7 +69,7 @@ class Dotenv
     protected function getFilePath($path, $file)
     {
         if (!is_string($file)) {
-            $file = '.env.example';
+            $file = '.env';
         }
 
         $filePath = rtrim($path, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$file;

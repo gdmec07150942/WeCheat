@@ -7,7 +7,6 @@ use RuntimeException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Container\Container;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Log\LogServiceProvider;
@@ -29,7 +28,7 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
      *
      * @var string
      */
-    const VERSION = '5.5.9';
+    const VERSION = '5.4.9';
 
     /**
      * The base path for the Laravel installation.
@@ -127,7 +126,7 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
      *
      * @var string
      */
-    protected $environmentFile = '.env.example';
+    protected $environmentFile = '.env';
 
     /**
      * The application namespace.
@@ -177,10 +176,6 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
         $this->instance('app', $this);
 
         $this->instance(Container::class, $this);
-
-        $this->instance(PackageManifest::class, new PackageManifest(
-            new Filesystem, $this->basePath(), $this->getCachedPackagesPath()
-        ));
     }
 
     /**
@@ -233,7 +228,7 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
      * Register a callback to run before a bootstrapper.
      *
      * @param  string  $bootstrapper
-     * @param  \Closure  $callback
+     * @param  Closure  $callback
      * @return void
      */
     public function beforeBootstrapping($bootstrapper, Closure $callback)
@@ -245,7 +240,7 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
      * Register a callback to run after a bootstrapper.
      *
      * @param  string  $bootstrapper
-     * @param  \Closure  $callback
+     * @param  Closure  $callback
      * @return void
      */
     public function afterBootstrapping($bootstrapper, Closure $callback)
@@ -299,56 +294,51 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
     /**
      * Get the path to the application "app" directory.
      *
-     * @param string $path Optionally, a path to append to the app path
      * @return string
      */
-    public function path($path = '')
+    public function path()
     {
-        return $this->basePath.DIRECTORY_SEPARATOR.'app'.($path ? DIRECTORY_SEPARATOR.$path : $path);
+        return $this->basePath.DIRECTORY_SEPARATOR.'app';
     }
 
     /**
      * Get the base path of the Laravel installation.
      *
-     * @param string $path Optionally, a path to append to the base path
      * @return string
      */
-    public function basePath($path = '')
+    public function basePath()
     {
-        return $this->basePath.($path ? DIRECTORY_SEPARATOR.$path : $path);
+        return $this->basePath;
     }
 
     /**
      * Get the path to the bootstrap directory.
      *
-     * @param string $path Optionally, a path to append to the bootstrap path
      * @return string
      */
-    public function bootstrapPath($path = '')
+    public function bootstrapPath()
     {
-        return $this->basePath.DIRECTORY_SEPARATOR.'bootstrap'.($path ? DIRECTORY_SEPARATOR.$path : $path);
+        return $this->basePath.DIRECTORY_SEPARATOR.'bootstrap';
     }
 
     /**
      * Get the path to the application configuration files.
      *
-     * @param string $path Optionally, a path to append to the config path
      * @return string
      */
-    public function configPath($path = '')
+    public function configPath()
     {
-        return $this->basePath.DIRECTORY_SEPARATOR.'config'.($path ? DIRECTORY_SEPARATOR.$path : $path);
+        return $this->basePath.DIRECTORY_SEPARATOR.'config';
     }
 
     /**
      * Get the path to the database directory.
      *
-     * @param string $path Optionally, a path to append to the database path
      * @return string
      */
-    public function databasePath($path = '')
+    public function databasePath()
     {
-        return ($this->databasePath ?: $this->basePath.DIRECTORY_SEPARATOR.'database').($path ? DIRECTORY_SEPARATOR.$path : $path);
+        return $this->databasePath ?: $this->basePath.DIRECTORY_SEPARATOR.'database';
     }
 
     /**
@@ -414,12 +404,11 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
     /**
      * Get the path to the resources directory.
      *
-     * @param  string  $path
      * @return string
      */
-    public function resourcePath($path = '')
+    public function resourcePath()
     {
-        return $this->basePath.DIRECTORY_SEPARATOR.'resources'.($path ? DIRECTORY_SEPARATOR.$path : $path);
+        return $this->basePath.DIRECTORY_SEPARATOR.'resources';
     }
 
     /**
@@ -465,7 +454,7 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
      */
     public function environmentFile()
     {
-        return $this->environmentFile ?: '.env.example';
+        return $this->environmentFile ?: '.env';
     }
 
     /**
@@ -518,9 +507,9 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
      */
     public function detectEnvironment(Closure $callback)
     {
-        $args = $_SERVER['argv'] ?? null;
+        $args = isset($_SERVER['argv']) ? $_SERVER['argv'] : null;
 
-        return $this['env'] = (new EnvironmentDetector)->detect($callback, $args);
+        return $this['env'] = (new EnvironmentDetector())->detect($callback, $args);
     }
 
     /**
@@ -530,7 +519,7 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
      */
     public function runningInConsole()
     {
-        return php_sapi_name() == 'cli' || php_sapi_name() == 'phpdbg';
+        return php_sapi_name() == 'cli';
     }
 
     /**
@@ -550,15 +539,8 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
      */
     public function registerConfiguredProviders()
     {
-        $providers = Collection::make($this->config['app.providers'])
-                        ->partition(function ($provider) {
-                            return Str::startsWith($provider, 'Illuminate\\');
-                        });
-
-        $providers->splice(1, 0, [$this->make(PackageManifest::class)->providers()]);
-
         (new ProviderRepository($this, new Filesystem, $this->getCachedServicesPath()))
-                    ->load($providers->collapse()->toArray());
+                    ->load($this->config['app.providers']);
     }
 
     /**
@@ -680,7 +662,7 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
      * Register a deferred provider and service.
      *
      * @param  string  $provider
-     * @param  string|null  $service
+     * @param  string  $service
      * @return void
      */
     public function registerDeferredProvider($provider, $service = null)
@@ -707,18 +689,17 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
      * (Overriding Container::make)
      *
      * @param  string  $abstract
-     * @param  array  $parameters
      * @return mixed
      */
-    public function make($abstract, array $parameters = [])
+    public function make($abstract)
     {
         $abstract = $this->getAlias($abstract);
 
-        if (isset($this->deferredServices[$abstract]) && ! isset($this->instances[$abstract])) {
+        if (isset($this->deferredServices[$abstract])) {
             $this->loadDeferredProvider($abstract);
         }
 
-        return parent::make($abstract, $parameters);
+        return parent::make($abstract);
     }
 
     /**
@@ -848,16 +829,6 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
     public function getCachedServicesPath()
     {
         return $this->bootstrapPath().'/cache/services.php';
-    }
-
-    /**
-     * Get the path to the cached packages.php file.
-     *
-     * @return string
-     */
-    public function getCachedPackagesPath()
-    {
-        return $this->bootstrapPath().'/cache/packages.php';
     }
 
     /**
@@ -1094,8 +1065,8 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
      */
     public function registerCoreContainerAliases()
     {
-        foreach ([
-            'app'                  => [\Illuminate\Foundation\Application::class, \Illuminate\Contracts\Container\Container::class, \Illuminate\Contracts\Foundation\Application::class,  \Psr\Container\ContainerInterface::class],
+        $aliases = [
+            'app'                  => [\Illuminate\Foundation\Application::class, \Illuminate\Contracts\Container\Container::class, \Illuminate\Contracts\Foundation\Application::class],
             'auth'                 => [\Illuminate\Auth\AuthManager::class, \Illuminate\Contracts\Auth\Factory::class],
             'auth.driver'          => [\Illuminate\Contracts\Auth\Guard::class],
             'blade.compiler'       => [\Illuminate\View\Compilers\BladeCompiler::class],
@@ -1129,7 +1100,9 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
             'url'                  => [\Illuminate\Routing\UrlGenerator::class, \Illuminate\Contracts\Routing\UrlGenerator::class],
             'validator'            => [\Illuminate\Validation\Factory::class, \Illuminate\Contracts\Validation\Factory::class],
             'view'                 => [\Illuminate\View\Factory::class, \Illuminate\Contracts\View\Factory::class],
-        ] as $key => $aliases) {
+        ];
+
+        foreach ($aliases as $key => $aliases) {
             foreach ($aliases as $alias) {
                 $this->alias($key, $alias);
             }
@@ -1145,16 +1118,7 @@ class Application extends Container implements ApplicationContract, HttpKernelIn
     {
         parent::flush();
 
-        $this->buildStack = [];
         $this->loadedProviders = [];
-        $this->bootedCallbacks = [];
-        $this->bootingCallbacks = [];
-        $this->deferredServices = [];
-        $this->reboundCallbacks = [];
-        $this->serviceProviders = [];
-        $this->resolvingCallbacks = [];
-        $this->afterResolvingCallbacks = [];
-        $this->globalResolvingCallbacks = [];
     }
 
     /**

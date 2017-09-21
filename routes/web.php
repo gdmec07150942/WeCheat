@@ -11,16 +11,4 @@
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
-Route::any('/weixin/api', 'WeChatController@api');
-Route::group(['middleware' => ['web']], function () {
-    Route::any('/weixin/serve', 'WeChatController@serve');
-    Route::any('/weixin', 'WeChatController@wechat');
-    Route::group(['middleware' => ['wechat.oauth']], function () {
-        Route::get('/user/profile', 'WeChatController@test2');
-    });
-    Route::get('/oauth_callback', 'WeChatController@test1');
-
-});
+Route::any('/', 'WeChatController@api');

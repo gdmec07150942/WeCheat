@@ -21,7 +21,6 @@
 
 namespace EasyWeChat\Payment;
 
-use Doctrine\Common\Cache\Cache;
 use EasyWeChat\Core\Exceptions\FaultException;
 use EasyWeChat\Support\Url as UrlHelper;
 use EasyWeChat\Support\XML;
@@ -53,22 +52,13 @@ class Payment
     protected $merchant;
 
     /**
-     * Cache.
-     *
-     * @var \Doctrine\Common\Cache\Cache
-     */
-    protected $cache;
-
-    /**
      * Constructor.
      *
-     * @param \EasyWeChat\Payment\Merchant      $merchant
-     * @param \Doctrine\Common\Cache\Cache|null $cache
+     * @param Merchant $merchant
      */
-    public function __construct(Merchant $merchant, Cache $cache = null)
+    public function __construct(Merchant $merchant)
     {
         $this->merchant = $merchant;
-        $this->cache = $cache;
     }
 
     /**
@@ -110,35 +100,6 @@ class Payment
 
         $notify = $notify->getNotify();
         $successful = $notify->get('result_code') === 'SUCCESS';
-
-        $handleResult = call_user_func_array($callback, [$notify, $successful]);
-
-        if (is_bool($handleResult) && $handleResult) {
-            $response = [
-                'return_code' => 'SUCCESS',
-                'return_msg' => 'OK',
-            ];
-        } else {
-            $response = [
-                'return_code' => 'FAIL',
-                'return_msg' => $handleResult,
-            ];
-        }
-
-        return new Response(XML::build($response));
-    }
-
-    /**
-     * Handle refund notify.
-     *
-     * @param callable $callback
-     *
-     * @return Response
-     */
-    public function handleRefundNotify(callable $callback)
-    {
-        $notify = $this->getRefundNotify()->getNotify();
-        $successful = $notify->get('return_code') === 'SUCCESS';
 
         $handleResult = call_user_func_array($callback, [$notify, $successful]);
 
@@ -341,16 +302,6 @@ class Payment
     }
 
     /**
-     * Return RefundNotify instance.
-     *
-     * @return \EasyWeChat\Payment\RefundNotify
-     */
-    public function getRefundNotify()
-    {
-        return new RefundNotify($this->merchant);
-    }
-
-    /**
      * API setter.
      *
      * @param API $api
@@ -367,7 +318,7 @@ class Payment
      */
     public function getAPI()
     {
-        return $this->api ?: $this->api = new API($this->getMerchant(), $this->cache);
+        return $this->api ?: $this->api = new API($this->getMerchant());
     }
 
     /**

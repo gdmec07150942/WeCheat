@@ -7,7 +7,6 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Traits\Macroable;
-use Illuminate\Contracts\Translation\Loader;
 use Illuminate\Support\NamespacedItemResolver;
 use Illuminate\Contracts\Translation\Translator as TranslatorContract;
 
@@ -18,7 +17,7 @@ class Translator extends NamespacedItemResolver implements TranslatorContract
     /**
      * The loader implementation.
      *
-     * @var \Illuminate\Contracts\Translation\Loader
+     * @var \Illuminate\Translation\LoaderInterface
      */
     protected $loader;
 
@@ -53,11 +52,11 @@ class Translator extends NamespacedItemResolver implements TranslatorContract
     /**
      * Create a new translator instance.
      *
-     * @param  \Illuminate\Contracts\Translation\Loader  $loader
+     * @param  \Illuminate\Translation\LoaderInterface  $loader
      * @param  string  $locale
      * @return void
      */
-    public function __construct(Loader $loader, $locale)
+    public function __construct(LoaderInterface $loader, $locale)
     {
         $this->loader = $loader;
         $this->locale = $locale;
@@ -155,7 +154,8 @@ class Translator extends NamespacedItemResolver implements TranslatorContract
         // only one level deep so we do not need to do any fancy searching through it.
         $this->load('*', '*', $locale);
 
-        $line = $this->loaded['*']['*'][$locale][$key] ?? null;
+        $line = isset($this->loaded['*']['*'][$locale][$key])
+                    ? $this->loaded['*']['*'][$locale][$key] : null;
 
         // If we can't find a translation for the JSON key, we will attempt to translate it
         // using the typical translation file. This way developers can always just use a
@@ -210,7 +210,7 @@ class Translator extends NamespacedItemResolver implements TranslatorContract
         $replace['count'] = $number;
 
         return $this->makeReplacements(
-            $this->getSelector()->choose($line, $number, $locale), $replace
+            $this->getSelector()->choose($line, $number), $replace
         );
     }
 
@@ -257,10 +257,6 @@ class Translator extends NamespacedItemResolver implements TranslatorContract
      */
     protected function makeReplacements($line, array $replace)
     {
-        if (empty($replace)) {
-            return $line;
-        }
-
         $replace = $this->sortReplacements($replace);
 
         foreach ($replace as $key => $value) {
@@ -352,17 +348,6 @@ class Translator extends NamespacedItemResolver implements TranslatorContract
     }
 
     /**
-     * Add a new JSON path to the loader.
-     *
-     * @param  string  $path
-     * @return void
-     */
-    public function addJsonPath($path)
-    {
-        $this->loader->addJsonPath($path);
-    }
-
-    /**
      * Parse a key into namespace, group, and item.
      *
      * @param  string  $key
@@ -418,7 +403,7 @@ class Translator extends NamespacedItemResolver implements TranslatorContract
     /**
      * Get the language line loader implementation.
      *
-     * @return \Illuminate\Contracts\Translation\Loader
+     * @return \Illuminate\Translation\LoaderInterface
      */
     public function getLoader()
     {

@@ -43,7 +43,7 @@ class Loader
     }
 
     /**
-     * Load `.env.example` file in given directory.
+     * Load `.env` file in given directory.
      *
      * @return array
      */

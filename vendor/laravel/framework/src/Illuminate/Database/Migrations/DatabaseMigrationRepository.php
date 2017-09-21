@@ -63,9 +63,7 @@ class DatabaseMigrationRepository implements MigrationRepositoryInterface
     {
         $query = $this->table()->where('batch', '>=', '1');
 
-        return $query->orderBy('batch', 'desc')
-                     ->orderBy('migration', 'desc')
-                     ->take($steps)->get()->all();
+        return $query->orderBy('migration', 'desc')->take($steps)->get()->all();
     }
 
     /**
@@ -163,7 +161,7 @@ class DatabaseMigrationRepository implements MigrationRepositoryInterface
      */
     protected function table()
     {
-        return $this->getConnection()->table($this->table)->useWritePdo();
+        return $this->getConnection()->table($this->table);
     }
 
     /**

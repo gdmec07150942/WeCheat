@@ -13,7 +13,7 @@ trait HasEvents
      *
      * @var array
      */
-    protected $dispatchesEvents = [];
+    protected $events = [];
 
     /**
      * User exposed observable events.
@@ -55,9 +55,9 @@ trait HasEvents
     {
         return array_merge(
             [
-                'retrieved', 'creating', 'created', 'updating',
-                'updated', 'deleting', 'deleted', 'saving',
-                'saved', 'restoring', 'restored',
+                'creating', 'created', 'updating', 'updated',
+                'deleting', 'deleted', 'saving', 'saved',
+                'restoring', 'restored',
             ],
             $this->observables
         );
@@ -136,15 +136,9 @@ trait HasEvents
         // returns a result we can return that result, or we'll call the string events.
         $method = $halt ? 'until' : 'fire';
 
-        $result = $this->filterModelEventResults(
-            $this->fireCustomModelEvent($event, $method)
-        );
+        $result = $this->fireCustomModelEvent($event, $method);
 
-        if ($result === false) {
-            return false;
-        }
-
-        return ! empty($result) ? $result : static::$dispatcher->{$method}(
+        return ! is_null($result) ? $result : static::$dispatcher->{$method}(
             "eloquent.{$event}: ".static::class, $this
         );
     }
@@ -158,43 +152,15 @@ trait HasEvents
      */
     protected function fireCustomModelEvent($event, $method)
     {
-        if (! isset($this->dispatchesEvents[$event])) {
+        if (! isset($this->events[$event])) {
             return;
         }
 
-        $result = static::$dispatcher->$method(new $this->dispatchesEvents[$event]($this));
+        $result = static::$dispatcher->$method(new $this->events[$event]($this));
 
         if (! is_null($result)) {
             return $result;
         }
-    }
-
-    /**
-     * Filter the model event results.
-     *
-     * @param  mixed  $result
-     * @return mixed
-     */
-    protected function filterModelEventResults($result)
-    {
-        if (is_array($result)) {
-            $result = array_filter($result, function ($response) {
-                return ! is_null($response);
-            });
-        }
-
-        return $result;
-    }
-
-    /**
-     * Register a retrieved model event with the dispatcher.
-     *
-     * @param  \Closure|string  $callback
-     * @return void
-     */
-    public static function retrieved($callback)
-    {
-        static::registerModelEvent('retrieved', $callback);
     }
 
     /**

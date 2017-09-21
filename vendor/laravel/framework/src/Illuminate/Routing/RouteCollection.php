@@ -64,7 +64,7 @@ class RouteCollection implements Countable, IteratorAggregate
      */
     protected function addToCollections($route)
     {
-        $domainAndUri = $route->getDomain().$route->uri();
+        $domainAndUri = $route->domain().$route->uri();
 
         foreach ($route->methods() as $method) {
             $this->routes[$method][$domainAndUri] = $route;
@@ -113,7 +113,7 @@ class RouteCollection implements Countable, IteratorAggregate
     /**
      * Refresh the name look-up table.
      *
-     * This is done in case any names are fluently defined or if routes are overwritten.
+     * This is done in case any names are fluently defined.
      *
      * @return void
      */
@@ -124,24 +124,6 @@ class RouteCollection implements Countable, IteratorAggregate
         foreach ($this->allRoutes as $route) {
             if ($route->getName()) {
                 $this->nameList[$route->getName()] = $route;
-            }
-        }
-    }
-
-    /**
-     * Refresh the action look-up table.
-     *
-     * This is done in case any actions are overwritten with new controllers.
-     *
-     * @return void
-     */
-    public function refreshActionLookups()
-    {
-        $this->actionList = [];
-
-        foreach ($this->allRoutes as $route) {
-            if (isset($route->getAction()['controller'])) {
-                $this->addToActionList($route->getAction(), $route);
             }
         }
     }
@@ -189,11 +171,7 @@ class RouteCollection implements Countable, IteratorAggregate
      */
     protected function matchAgainstRoutes(array $routes, $request, $includingMethod = true)
     {
-        list($fallbacks, $routes) = collect($routes)->partition(function ($route) {
-            return $route->isFallback;
-        });
-
-        return $routes->merge($fallbacks)->first(function ($value) use ($request, $includingMethod) {
+        return Arr::first($routes, function ($value) use ($request, $includingMethod) {
             return $value->matches($request, $includingMethod);
         });
     }
@@ -285,7 +263,7 @@ class RouteCollection implements Countable, IteratorAggregate
      */
     public function getByName($name)
     {
-        return $this->nameList[$name] ?? null;
+        return isset($this->nameList[$name]) ? $this->nameList[$name] : null;
     }
 
     /**
@@ -296,7 +274,7 @@ class RouteCollection implements Countable, IteratorAggregate
      */
     public function getByAction($action)
     {
-        return $this->actionList[$action] ?? null;
+        return isset($this->actionList[$action]) ? $this->actionList[$action] : null;
     }
 
     /**
@@ -317,16 +295,6 @@ class RouteCollection implements Countable, IteratorAggregate
     public function getRoutesByMethod()
     {
         return $this->routes;
-    }
-
-    /**
-     * Get all of the routes keyed by their name.
-     *
-     * @return array
-     */
-    public function getRoutesByName()
-    {
-        return $this->nameList;
     }
 
     /**

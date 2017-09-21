@@ -38,25 +38,19 @@ class MorphToMany extends BelongsToMany
      * @param  \Illuminate\Database\Eloquent\Model  $parent
      * @param  string  $name
      * @param  string  $table
-     * @param  string  $foreignPivotKey
-     * @param  string  $relatedPivotKey
-     * @param  string  $parentKey
+     * @param  string  $foreignKey
      * @param  string  $relatedKey
      * @param  string  $relationName
      * @param  bool  $inverse
      * @return void
      */
-    public function __construct(Builder $query, Model $parent, $name, $table, $foreignPivotKey,
-                                $relatedPivotKey, $parentKey, $relatedKey, $relationName = null, $inverse = false)
+    public function __construct(Builder $query, Model $parent, $name, $table, $foreignKey, $relatedKey, $relationName = null, $inverse = false)
     {
         $this->inverse = $inverse;
         $this->morphType = $name.'_type';
         $this->morphClass = $inverse ? $query->getModel()->getMorphClass() : $parent->getMorphClass();
 
-        parent::__construct(
-            $query, $parent, $table, $foreignPivotKey,
-            $relatedPivotKey, $parentKey, $relatedKey, $relationName
-        );
+        parent::__construct($query, $parent, $table, $foreignKey, $relatedKey, $relationName);
     }
 
     /**
@@ -134,12 +128,9 @@ class MorphToMany extends BelongsToMany
      */
     public function newPivot(array $attributes = [], $exists = false)
     {
-        $using = $this->using;
+        $pivot = new MorphPivot($this->parent, $attributes, $this->table, $exists);
 
-        $pivot = $using ? $using::fromRawAttributes($this->parent, $attributes, $this->table, $exists)
-                        : MorphPivot::fromAttributes($this->parent, $attributes, $this->table, $exists);
-
-        $pivot->setPivotKeys($this->foreignPivotKey, $this->relatedPivotKey)
+        $pivot->setPivotKeys($this->foreignKey, $this->relatedKey)
               ->setMorphType($this->morphType)
               ->setMorphClass($this->morphClass);
 

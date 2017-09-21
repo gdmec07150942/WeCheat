@@ -2,12 +2,10 @@
 
 namespace Illuminate\Notifications\Messages;
 
-use Illuminate\Support\InteractsWithTime;
+use Carbon\Carbon;
 
 class SlackAttachment
 {
-    use InteractsWithTime;
-
     /**
      * The attachment's title.
      *
@@ -56,20 +54,6 @@ class SlackAttachment
      * @var array
      */
     public $markdown;
-
-    /**
-     * The attachment's image url.
-     *
-     * @var string
-     */
-    public $imageUrl;
-
-    /**
-     * The attachment's thumb url.
-     *
-     * @var string
-     */
-    public $thumbUrl;
 
     /**
      * The attachment's footer.
@@ -197,32 +181,6 @@ class SlackAttachment
     }
 
     /**
-     * Set the image URL.
-     *
-     * @param  string  $url
-     * @return $this
-     */
-    public function image($url)
-    {
-        $this->imageUrl = $url;
-
-        return $this;
-    }
-
-    /**
-     * Set the URL to the attachment thumbnail.
-     *
-     * @param  string  $url
-     * @return $this
-     */
-    public function thumb($url)
-    {
-        $this->thumbUrl = $url;
-
-        return $this;
-    }
-
-    /**
      * Set the footer content.
      *
      * @param  string  $footer
@@ -251,12 +209,12 @@ class SlackAttachment
     /**
      * Set the timestamp.
      *
-     * @param  \DateTimeInterface|\DateInterval|int  $timestamp
+     * @param  Carbon  $timestamp
      * @return $this
      */
-    public function timestamp($timestamp)
+    public function timestamp(Carbon $timestamp)
     {
-        $this->timestamp = $this->availableAt($timestamp);
+        $this->timestamp = $timestamp->getTimestamp();
 
         return $this;
     }

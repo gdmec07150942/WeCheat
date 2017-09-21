@@ -2,14 +2,12 @@
 
 namespace Illuminate\Database\Eloquent;
 
+use Closure;
 use Faker\Generator as Faker;
 use InvalidArgumentException;
-use Illuminate\Support\Traits\Macroable;
 
 class FactoryBuilder
 {
-    use Macroable;
-
     /**
      * The model definitions in the container.
      *
@@ -30,13 +28,6 @@ class FactoryBuilder
      * @var string
      */
     protected $name = 'default';
-
-    /**
-     * The database connection on which the model instance should be persisted.
-     *
-     * @var string
-     */
-    protected $connection;
 
     /**
      * The model states.
@@ -101,7 +92,7 @@ class FactoryBuilder
     /**
      * Set the states to be applied to the model.
      *
-     * @param  array|mixed  $states
+     * @param  array|dynamic  $states
      * @return $this
      */
     public function states($states)
@@ -109,32 +100,6 @@ class FactoryBuilder
         $this->activeStates = is_array($states) ? $states : func_get_args();
 
         return $this;
-    }
-
-    /**
-     * Set the database connection on which the model instance should be persisted.
-     *
-     * @param  string  $name
-     * @return $this
-     */
-    public function connection($name)
-    {
-        $this->connection = $name;
-
-        return $this;
-    }
-
-    /**
-     * Create a model and persist it in the database if requested.
-     *
-     * @param  array  $attributes
-     * @return \Closure
-     */
-    public function lazy(array $attributes = [])
-    {
-        return function () use ($attributes) {
-            return $this->create($attributes);
-        };
     }
 
     /**
@@ -148,29 +113,12 @@ class FactoryBuilder
         $results = $this->make($attributes);
 
         if ($results instanceof Model) {
-            $this->store(collect([$results]));
+            $results->save();
         } else {
-            $this->store($results);
+            $results->each->save();
         }
 
         return $results;
-    }
-
-    /**
-     * Set the connection name on the results and store them.
-     *
-     * @param  \Illuminate\Support\Collection  $results
-     * @return void
-     */
-    protected function store($results)
-    {
-        $results->each(function ($model) {
-            if (! isset($this->connection)) {
-                $model->setConnection($model->newQueryWithoutScopes()->getConnection()->getName());
-            }
-
-            $model->save();
-        });
     }
 
     /**
@@ -203,7 +151,7 @@ class FactoryBuilder
     public function raw(array $attributes = [])
     {
         if ($this->amount === null) {
-            return $this->getRawAttributes($attributes);
+            return $this->getRawAttributes();
         }
 
         if ($this->amount < 1) {
@@ -228,7 +176,7 @@ class FactoryBuilder
             $this->faker, $attributes
         );
 
-        return $this->expandAttributes(
+        return $this->callClosureAttributes(
             array_merge($this->applyStates($definition, $attributes), $attributes)
         );
     }
@@ -248,15 +196,9 @@ class FactoryBuilder
                 throw new InvalidArgumentException("Unable to locate factory with name [{$this->name}] [{$this->class}].");
             }
 
-            $instance = new $this->class(
+            return new $this->class(
                 $this->getRawAttributes($attributes)
             );
-
-            if (isset($this->connection)) {
-                $instance->setConnection($this->connection);
-            }
-
-            return $instance;
         });
     }
 
@@ -274,56 +216,26 @@ class FactoryBuilder
                 throw new InvalidArgumentException("Unable to locate [{$state}] state for [{$this->class}].");
             }
 
-            $definition = array_merge(
-                $definition,
-                $this->stateAttributes($state, $attributes)
-            );
+            $definition = array_merge($definition, call_user_func(
+                $this->states[$this->class][$state],
+                $this->faker, $attributes
+            ));
         }
 
         return $definition;
     }
 
     /**
-     * Get the state attributes.
-     *
-     * @param string $state
-     * @param array $attributes
-     * @return array
-     */
-    protected function stateAttributes($state, array $attributes)
-    {
-        $stateAttributes = $this->states[$this->class][$state];
-
-        if (! is_callable($stateAttributes)) {
-            return $stateAttributes;
-        }
-
-        return call_user_func(
-            $stateAttributes,
-            $this->faker, $attributes
-        );
-    }
-
-    /**
-     * Expand all attributes to their underlying values.
+     * Evaluate any Closure attributes on the attribute array.
      *
      * @param  array  $attributes
      * @return array
      */
-    protected function expandAttributes(array $attributes)
+    protected function callClosureAttributes(array $attributes)
     {
         foreach ($attributes as &$attribute) {
-            if (is_callable($attribute) && ! is_string($attribute)) {
-                $attribute = $attribute($attributes);
-            }
-
-            if ($attribute instanceof static) {
-                $attribute = $attribute->create()->getKey();
-            }
-
-            if ($attribute instanceof Model) {
-                $attribute = $attribute->getKey();
-            }
+            $attribute = $attribute instanceof Closure
+                            ? $attribute($attributes) : $attribute;
         }
 
         return $attributes;

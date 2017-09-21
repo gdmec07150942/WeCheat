@@ -180,7 +180,7 @@ class Store implements Session
     }
 
     /**
-     * Checks if a key is present and not null.
+     * Checks if an a key is present and not null.
      *
      * @param  string|array  $key
      * @return bool
@@ -337,7 +337,7 @@ class Store implements Session
      * @param  mixed   $value
      * @return void
      */
-    public function flash($key, $value = true)
+    public function flash($key, $value)
     {
         $this->put($key, $value);
 

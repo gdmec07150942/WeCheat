@@ -177,7 +177,9 @@ class Command extends SymfonyCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        return $this->laravel->call([$this, 'handle']);
+        $method = method_exists($this, 'handle') ? 'handle' : 'fire';
+
+        return $this->laravel->call([$this, $method]);
     }
 
     /**
@@ -226,7 +228,7 @@ class Command extends SymfonyCommand
     /**
      * Get the value of a command argument.
      *
-     * @param  string|null  $key
+     * @param  string  $key
      * @return string|array
      */
     public function argument($key = null)
@@ -378,11 +380,10 @@ class Command extends SymfonyCommand
      *
      * @param  array   $headers
      * @param  \Illuminate\Contracts\Support\Arrayable|array  $rows
-     * @param  string  $tableStyle
-     * @param  array   $columnStyles
+     * @param  string  $style
      * @return void
      */
-    public function table($headers, $rows, $tableStyle = 'default', array $columnStyles = [])
+    public function table(array $headers, $rows, $style = 'default')
     {
         $table = new Table($this->output);
 
@@ -390,13 +391,7 @@ class Command extends SymfonyCommand
             $rows = $rows->toArray();
         }
 
-        $table->setHeaders((array) $headers)->setRows($rows)->setStyle($tableStyle);
-
-        foreach ($columnStyles as $columnIndex => $columnStyle) {
-            $table->setColumnStyle($columnIndex, $columnStyle);
-        }
-
-        $table->render();
+        $table->setHeaders($headers)->setRows($rows)->setStyle($style)->render();
     }
 
     /**
@@ -478,21 +473,6 @@ class Command extends SymfonyCommand
         }
 
         $this->line($string, 'warning', $verbosity);
-    }
-
-    /**
-     * Write a string in an alert box.
-     *
-     * @param  string  $string
-     * @return void
-     */
-    public function alert($string)
-    {
-        $this->comment(str_repeat('*', strlen($string) + 12));
-        $this->comment('*     '.$string.'     *');
-        $this->comment(str_repeat('*', strlen($string) + 12));
-
-        $this->output->writeln('');
     }
 
     /**
