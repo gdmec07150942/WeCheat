@@ -14,6 +14,7 @@
 Route::get('/', function () {
     return view('welcome');
 });
+Route::any('/weixin/api', 'WeChatController@api');
 Route::group(['middleware' => ['web']], function () {
     Route::any('/weixin/serve', 'WeChatController@serve');
     Route::any('/weixin', 'WeChatController@wechat');
